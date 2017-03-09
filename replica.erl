@@ -26,8 +26,11 @@ checkDecisions(SlotOut, Requests, Proposals, Decisions, Database) ->
     error -> {SlotOut, Proposals, Requests};
     Op ->
       case maps:get(SlotOut, Proposals, error) of
-        {_Client, _Cid, _Op} = OtherOp when Op /= OtherOp ->
-          checkDecisions(SlotOut, lists:append(Requests, [OtherOp]), maps:remove(SlotOut, Proposals), Decisions, Database);
+        {_Client, _Cid, _Op} = OtherOp ->
+          NewProposals = maps:remove(SlotOut, Proposals),
+          if Op /= OtherOp -> checkDecisions(SlotOut, lists:append(Requests, [OtherOp]), NewProposals, Decisions, Database);
+             true -> checkDecisions(SlotOut, Requests, NewProposals, Decisions, Database)
+          end;
         _ -> ok
       end,
       {perform(Op, Decisions, SlotOut, Database), Proposals, Requests}

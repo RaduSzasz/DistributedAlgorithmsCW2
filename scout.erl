@@ -10,7 +10,7 @@ start(Leader, Acceptors, Ballot) ->
 %%% We wanted to make WaitFor be a set to allow for more efficient deletion
 next(Leader, Acceptors, WaitFor, Ballot, PVals) ->
   receive
-    {p1b, Acceptor, Ballot, Accepted} ->
+    {p1b, Acceptor, B, Accepted} when B == Ballot ->
       NewWaitFor = sets:del_element(Acceptor, WaitFor),
       NewPVals = sets:union(PVals, Accepted),
       case sets:size(NewWaitFor) < length(Acceptors) / 2 of

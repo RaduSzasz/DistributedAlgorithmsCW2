@@ -24,7 +24,7 @@ next(Ballot, Acceptors, Replicas, Active, Proposals) ->
           end,
           next(Ballot, Acceptors, Replicas, Active, NewProposals)
       end;
-    {adopted, Ballot, PVals} -> % We have a majority of acceptors who adopted our ballot
+    {adopted, B, PVals} when B == Ballot -> % We have a majority of acceptors who adopted our ballot
       NewProposalsWithBallots = sets:fold(fun({BallotNum, Slot, Command}, Map) ->
                                              maps:update_with(Slot,
                                                               fun({OldBallot, _} = OldSlot) ->

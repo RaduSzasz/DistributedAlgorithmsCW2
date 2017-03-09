@@ -11,7 +11,7 @@ start(Leader, Acceptors, Replicas, Proposal) ->
 % And then wait for replies
 next(Leader, Acceptors, WaitFor, Replicas, {Ballot, Slot, Command} = Proposal) ->
   receive
-    {p2b, Acceptor, Ballot} -> % Reply for current ballot
+    {p2b, Acceptor, B} when Ballot == B -> % Reply for current ballot
       NewWaitFor = sets:del_element(Acceptor, WaitFor),
       case sets:size(NewWaitFor) < length(Acceptors) / 2 of
         true -> [Replica ! {decision, Slot, Command} || Replica <- Replicas];
