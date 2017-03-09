@@ -7,32 +7,52 @@
 
 start(Database) ->
   receive
-    {bind, Leaders} -> 
-       next(...)
+    {bind, Leaders} -> next(Leaders, Database, 1, 1, [], maps:new(), maps:new())
   end.
 
-next(...) ->
+next(Leaders, Database, SlotIn, SlotOut, Requests, Proposals, Decisions) ->
   receive
     {request, C} ->      % request from client
-      ...
+      NewRequests = lists:append(Requests, [C]),
+      propose(SlotIn, SlotOut, Leaders, Database, NewRequests, Proposals, Decisions);
     {decision, S, C} ->  % decision from commander
-      ... = decide (...)
-  end, % receive
+      NewDecisions = maps:put(S, C, Decisions),
+      {NewSlotOut, NewProposals, NewRequests} = checkDecisions(SlotOut, Requests, Proposals, NewDecisions, Database),
+      propose(SlotIn, NewSlotOut, Leaders, Database, NewRequests, NewProposals, NewDecisions)
+  end.
 
-  ... = propose(...),
-  ...
+checkDecisions(SlotOut, Requests, Proposals, Decisions, Database) ->
+  case maps:get(SlotOut, Decisions) of
+    error -> {SlotOut, Proposals, Requests};
+    Op ->
+      case maps:get(SlotOut, Proposals) of
+        OtherOp when Op /= OtherOp ->
+          checkDecisions(SlotOut, lists:append(Requests, [OtherOp]), maps:remove(SlotOut, Proposals), Decisions, Database)
+      end,
+      {perform(Op, Decisions, SlotOut, Database), Proposals, Requests}
+  end.
 
-propose(...) ->
+
+propose(SlotIn, SlotOut, Leaders, Database, [Request | Requests] = AllRequests, Proposals, Decisions) ->
   WINDOW = 5,
-  ...
+  if SlotIn < SlotOut + WINDOW ->
+      case maps:is_key(SlotIn, Decisions) of
+        false -> 
+          NewProposals = maps:put(SlotIn, Request, Proposals),
+          [Leader ! {propose, SlotIn, Request} || Leader <- Leaders],
+          propose(SlotIn + 1, SlotOut, Leaders, Database, Requests, NewProposals, Decisions)
+      end,
+      propose(SlotIn + 1, SlotOut, Leaders, Database, AllRequests, Proposals, Decisions);
+    true -> next(SlotIn, SlotOut, Leaders, Database, AllRequests, Proposals, Decisions)
+  end;
+propose(SlotIn, SlotOut, Leaders, Database, [], Proposals, Decisions) ->
+  next(Leaders, Database, SlotIn, SlotOut, [], Proposals, Decisions).
    
-decide(...) ->
-  ...
-       perform(...),
-  ...
-
-perform(...) ->
-  ...
+perform({Client, Cid, Op} = Command, Decisions, SlotOut, Database) ->
+  IdenticalCommands = [{DSlot, DCommand} || {DSlot, DCommand} <- maps:to_list(Decisions), DSlot < SlotOut, DCommand == Command],
+  if length(IdenticalCommands) == 0 ->
       Database ! {execute, Op},
       Client ! {response, Cid, ok}
+  end,
+  SlotOut + 1.
 
