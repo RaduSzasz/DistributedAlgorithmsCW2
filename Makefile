@@ -1,6 +1,6 @@
 .SUFFIXES: .erl .beam
 
-MODULES = system client database replica server acceptor
+MODULES = system client database replica server acceptor scout commander
 
 ERLC = 	erlc -o ebin
 
