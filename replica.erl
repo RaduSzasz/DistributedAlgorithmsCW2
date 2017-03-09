@@ -22,12 +22,13 @@ next(Leaders, Database, SlotIn, SlotOut, Requests, Proposals, Decisions) ->
   end.
 
 checkDecisions(SlotOut, Requests, Proposals, Decisions, Database) ->
-  case maps:get(SlotOut, Decisions) of
+  case maps:get(SlotOut, Decisions, error) of
     error -> {SlotOut, Proposals, Requests};
     Op ->
-      case maps:get(SlotOut, Proposals) of
-        OtherOp when Op /= OtherOp ->
-          checkDecisions(SlotOut, lists:append(Requests, [OtherOp]), maps:remove(SlotOut, Proposals), Decisions, Database)
+      case maps:get(SlotOut, Proposals, error) of
+        {_Client, _Cid, _Op} = OtherOp when Op /= OtherOp ->
+          checkDecisions(SlotOut, lists:append(Requests, [OtherOp]), maps:remove(SlotOut, Proposals), Decisions, Database);
+        _ -> ok
       end,
       {perform(Op, Decisions, SlotOut, Database), Proposals, Requests}
   end.
@@ -37,6 +38,7 @@ propose(SlotIn, SlotOut, Leaders, Database, [Request | Requests] = AllRequests, 
   WINDOW = 5,
   if SlotIn < SlotOut + WINDOW ->
       case maps:is_key(SlotIn, Decisions) of
+        true -> ok;
         false -> 
           NewProposals = maps:put(SlotIn, Request, Proposals),
           [Leader ! {propose, SlotIn, Request} || Leader <- Leaders],
@@ -52,7 +54,8 @@ perform({Client, Cid, Op} = Command, Decisions, SlotOut, Database) ->
   IdenticalCommands = [{DSlot, DCommand} || {DSlot, DCommand} <- maps:to_list(Decisions), DSlot < SlotOut, DCommand == Command],
   if length(IdenticalCommands) == 0 ->
       Database ! {execute, Op},
-      Client ! {response, Cid, ok}
+      Client ! {response, Cid, ok};
+     true -> ok
   end,
   SlotOut + 1.
 
