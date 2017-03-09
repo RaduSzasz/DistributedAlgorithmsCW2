@@ -15,6 +15,5 @@ next(Leader, Acceptors, WaitFor, Replicas, {Ballot, Slot, _} = Proposal) ->
            [Replica ! {decision, Slot, Proposal} || Replica <- Replicas];
          true -> next(Leader, Acceptors, NewWaitFor, Replicas, Proposal)
       end;
-    {p2b, _, OtherBallot} ->
-      Leader ! {preempted, OtherBallot}
+    {p2b, _, OtherBallot} -> Leader ! {preempted, OtherBallot}
   end.
