@@ -5,12 +5,12 @@
 
 start(Leader, Acceptors, Replicas, Proposal) ->
   [Acceptor ! {p2a, self(), Proposal} || Acceptor <- Acceptors],
-  next(Leader, Acceptors, Acceptors, Replicas, Proposal).
+  next(Leader, Acceptors, sets:from_list(Acceptors), Replicas, Proposal).
 
 next(Leader, Acceptors, WaitFor, Replicas, {Ballot, Slot, _} = Proposal) ->
   receive
     {p2b, Acceptor, Ballot} ->
-      NewWaitFor = lists:delete(WaitFor, Acceptor),
+      NewWaitFor = sets:del_element(Acceptor, WaitFor),
       if length(NewWaitFor) < length(Acceptors) / 2 ->
            [Replica ! {decision, Slot, Proposal} || Replica <- Replicas];
          true -> next(Leader, Acceptors, NewWaitFor, Replicas, Proposal)

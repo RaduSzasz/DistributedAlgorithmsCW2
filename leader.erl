@@ -1,13 +1,16 @@
 %%% Eugenia Kim (ek2213) and Radu-Andrei Szasz (ras114)
 
 -module(leader).
--export([start/2]).
+-export([start/0]).
 
-start(Acceptors, Replicas) ->
+start() ->
   Ballot = {0, self()},
 
-  spawn(scout, start, [self(), Acceptors, Ballot]),
-  next(Ballot, Acceptors, Replicas, false, maps:new()).
+  receive
+    {bind, Acceptors, Replicas} ->
+      spawn(scout, start, [self(), Acceptors, Ballot]),
+      next(Ballot, Acceptors, Replicas, false, maps:new())
+  end.
 
 next(Ballot, Acceptors, Replicas, Active, Proposals) ->
   receive
@@ -36,12 +39,10 @@ next(Ballot, Acceptors, Replicas, Active, Proposals) ->
       [spawn(commander, start, [self(), Acceptors, Replicas, {Ballot, CurrSlot, CurrCommand}])
           || {CurrSlot, CurrCommand} <- maps:to_list(NewProposals)],
       next(Ballot, Acceptors, Replicas, true, NewProposals);
-    {preempted, {BallotRound, _BallotLeader} = AdoptedBallot} ->
-        if AdoptedBallot > Ballot ->
+    {preempted, {BallotRound, _BallotLeader} = AdoptedBallot} when AdoptedBallot > Ballot ->
           NewBallot = {BallotRound + 1, self()},
           spawn(scout, start, [self(), Acceptors, NewBallot]),
           next(NewBallot, Acceptors, Replicas, true, Proposals)
-        end
   end.
 
 

@@ -4,7 +4,7 @@
 -export([start/0]).
 
 start() ->
-  next(bottom, []).
+  next(bottom, sets:new()).
 
 next(CurrBallot, Accepted) ->
   receive
@@ -15,7 +15,7 @@ next(CurrBallot, Accepted) ->
       Leader ! {p1b, self(), NewBallotNum, Accepted},
       next(NewBallotNum, Accepted);
     {p2a, Leader, {Ballot, _, _} = Proposal} ->
-      NewAccepted = if Ballot == CurrBallot -> lists:append(Accepted, [Proposal]);
+      NewAccepted = if Ballot == CurrBallot -> sets:add_element(Proposal, Accepted);
                        true -> Accepted
                     end,
       Leader ! {p2b, self(), CurrBallot},
