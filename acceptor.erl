@@ -4,7 +4,7 @@
 -export([start/0]).
 
 start() ->
-  next(bottom, sets:new()).
+  next({-1, ok}, sets:new()).
 
 next(CurrBallot, Accepted) ->
   receive

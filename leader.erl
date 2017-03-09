@@ -19,7 +19,8 @@ next(Ballot, Acceptors, Replicas, Active, Proposals) ->
         true-> next(Ballot, Acceptors, Replicas, Active, Proposals);
         false ->
           NewProposals = maps:put(Slot, Command, Proposals),
-          if Active -> spawn(commander, start, [self(), Acceptors, Replicas, {Ballot, Slot, Command}])
+          if Active -> spawn(commander, start, [self(), Acceptors, Replicas, {Ballot, Slot, Command}]);
+             true -> ok
           end,
           next(Ballot, Acceptors, Replicas, Active, NewProposals)
       end;
