@@ -25,7 +25,7 @@ next(Ballot, Acceptors, Replicas, Active, Proposals) ->
           next(Ballot, Acceptors, Replicas, Active, NewProposals)
       end;
     {adopted, Ballot, PVals} ->
-      NewProposalsWithBallots = sets:fold(fun({BallotNum, Slot, Command}, Map) ->
+      NewProposals = sets:fold(fun({BallotNum, Slot, Command}, Map) ->
                                                maps:update_with(Slot,
                                                                 fun({OldBallot, _} = OldSlot) ->
                                                                     if OldBallot < BallotNum -> {BallotNum, Command};
@@ -35,8 +35,6 @@ next(Ballot, Acceptors, Replicas, Active, Proposals) ->
                                                                 {BallotNum, Command},
                                                                 Map)
                                           end, maps:new(), PVals),
-      NewProposals = maps:merge(Proposals,
-                                maps:map(fun(_Key, {_Ballot, Command}) -> Command end, NewProposalsWithBallots)),
       [spawn(commander, start, [self(), Acceptors, Replicas, {Ballot, CurrSlot, CurrCommand}])
           || {CurrSlot, CurrCommand} <- maps:to_list(NewProposals)],
       next(Ballot, Acceptors, Replicas, true, NewProposals);
