@@ -173,9 +173,9 @@
 -export([start/0]).
 
 start() ->
-  N_servers  = 1,
+  N_servers  = 5,
   N_clients  = 3,
-  N_accounts = 2,
+  N_accounts = 10,
   Max_amount = 1000,
 
   End_after  = 1000,   %  Milli-seconds for Simulation

@@ -8,13 +8,13 @@ start() ->
 
 next(CurrBallot, Accepted) ->
   receive
-    {p1a, Leader, Ballot} ->
-      NewBallotNum = if Ballot > CurrBallot -> Ballot;
-                        true -> CurrBallot
-                      end,
-      Leader ! {p1b, self(), NewBallotNum, Accepted},
-      next(NewBallotNum, Accepted);
-    {p2a, Leader, {Ballot, _, _} = Proposal} ->
+    {p1a, Leader, Ballot} -> % Leader suggests a ballot
+      NewBallot = if Ballot > CurrBallot -> Ballot;
+                     true -> CurrBallot
+                  end,
+      Leader ! {p1b, self(), NewBallot, Accepted},
+      next(NewBallot, Accepted);
+    {p2a, Leader, {Ballot, _, _} = Proposal} -> % Leader sends a proposal
       NewAccepted = if Ballot == CurrBallot -> sets:add_element(Proposal, Accepted);
                        true -> Accepted
                     end,
